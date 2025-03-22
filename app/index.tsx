@@ -27,7 +27,7 @@ export default function HomeScreen() {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [slideModalVisible, setSlideModalVisible] = useState(false);
 
-  const { folders, setFolders, handleFolderUpload, updateFolder } = useFolder();
+  const { folders, setFolders, handleFolderUpload, updateFolder, deleteFolder, isLoading: folderIsLoading, progress } = useFolder();
 
   const handleEditFolder = (folder: FolderItem) => {
     setEditingFolder(folder);
@@ -56,8 +56,7 @@ export default function HomeScreen() {
           text: 'Delete',
           style: 'destructive',
           onPress: () => {
-            const newFolders = folders.filter((f) => f.id !== folder.id);
-            setFolders(newFolders);
+            deleteFolder(folder.id);
           },
         },
       ]
@@ -108,6 +107,7 @@ export default function HomeScreen() {
           'text/csv',
           'image/png',
           'image/jpeg',
+          'image/svg+xml',
         ],
         multiple: true,
       });
@@ -129,7 +129,8 @@ export default function HomeScreen() {
           file.mimeType?.startsWith('image/') &&
           (file.name.endsWith('.png') ||
             file.name.endsWith('.jpg') ||
-            file.name.endsWith('.jpeg'))
+            file.name.endsWith('.jpeg') ||
+            file.name.endsWith('.svg'))
       );
 
       let newEntries: {
@@ -236,8 +237,8 @@ export default function HomeScreen() {
             const processedEntry = {
               imageUrl: image.uri,
               name: image.name,
-              description: [{ text: image.name, style: {} }],
-              voiceText: image.name,
+              description: [],
+              voiceText: '',
             };
 
             uniqueImages.set(image.name, processedEntry);
@@ -291,7 +292,7 @@ export default function HomeScreen() {
   };
 
   const handleNext = () => {
-    if (currentSlideIndex < selectedFolder?.images.length - 1) {
+    if (selectedFolder?.images && currentSlideIndex < selectedFolder.images.length - 1) {
       setCurrentSlideIndex(currentSlideIndex + 1);
     }
   };
@@ -444,22 +445,41 @@ export default function HomeScreen() {
       </Modal>
 
       {/* Loading Overlay */}
-      {isLoading && (
-        <StyledView className="absolute inset-0 bg-black/50 justify-center items-center z-50">
-          <StyledView className="bg-white p-6 rounded-2xl shadow-xl">
-            <StyledView className="w-16 h-16 mb-4 justify-center items-center">
+      {folderIsLoading && (
+        <StyledSafeAreaView className=" left-0 right-0 top-0 bottom-0 absolute inset-0 bg-white flex-1 z-50">
+          <StyledView className="flex-1 justify-center items-center px-8">
+            {/* Loading Icon */}
+            <StyledView className="mb-16">
               <Icon
                 name="refresh"
-                size={32}
+                size={48}
                 color="#4361ee"
                 className="animate-spin"
               />
             </StyledView>
-            <StyledText className="text-center text-base font-medium text-gray-700">
-              Processing folder...
+
+            {/* Title and Description */}
+            <StyledText className="text-2xl font-bold text-gray-900 mb-2">
+              Processing Images
             </StyledText>
+            <StyledText className="text-base text-gray-500 mb-12">
+              Please wait while we process your images...
+            </StyledText>
+
+            {/* Progress Bar Container */}
+            <StyledView className="w-full max-w-sm">
+              <StyledView className="h-2 bg-gray-100 rounded-full overflow-hidden mb-3">
+                <StyledView 
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${progress}%` }}
+                />
+              </StyledView>
+              <StyledText className="text-sm text-gray-600 text-center">
+                {Math.round(progress)}% Complete
+              </StyledText>
+            </StyledView>
           </StyledView>
-        </StyledView>
+        </StyledSafeAreaView>
       )}
     </StyledView>
   );
